@@ -1,26 +1,43 @@
-import os
+import os, json, base64
 from google import genai
 from google.genai import types
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import base64
 
-app = Flask(__name__)
-CORS(app)
-
+# Init the Gemini client
 client = genai.Gemini(api_key=os.getenv("GOOGLE_API_KEY"))
 
-@app.route("/api/generate", methods=["POST"])
-def generate():
-    data = request.get_json()
+def handler(request):
+    # Parse the incoming JSON
+    data = json.loads(request.body)
     prompt = data.get("prompt", "")
+
+    # Generate an image
     response = client.models.generate_content(
         model="gemini-2.0-flash-exp-image-generation",
         contents=prompt,
-        config=types.GenerateContentConfig(response_modalities=["image"])
+        config=types.GenerateContentConfig(
+            response_modalities=["image"]
+        )
     )
+
+    # Extract the first inline image and base64‑encode it
+    b64 = None
     for part in response.candidates[0].content.parts:
         if part.inline_data:
             b64 = base64.b64encode(part.inline_data.data).decode("utf-8")
-            return jsonify({"image": b64})
-    return jsonify({"error": "no image returned"}), 500
+            break
+
+    if not b64:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": "no image returned"})
+        }
+
+    # Return JSON with CORS headers so your front‑end can read it
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "body": json.dumps({"image": b64})
+    }
