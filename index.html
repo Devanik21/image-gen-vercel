@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Image Gen on the Go 🌈</title></head>
+<body style="font-family:sans-serif; text-align:center; padding:2rem;">
+  <h1>✨ Prompt & Create ✨</h1>
+  <input id="prompt" placeholder="Type your dreamy scene…" style="width:60%; padding:0.5em;" />
+  <button onclick="createImage()" style="padding:0.5em 1em;">Generate!</button>
+  <div id="result" style="margin-top:2rem;"></div>
+  <script>
+    async function createImage() {
+      const prompt = document.getElementById("prompt").value;
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ prompt })
+      });
+      const { image, error } = await res.json();
+      const container = document.getElementById("result");
+      if (error) container.innerText = "Oops! " + error;
+      else container.innerHTML = `<img src="data:image/png;base64,${image}" alt="✨"/>`;
+    }
+  </script>
+</body>
+</html>
